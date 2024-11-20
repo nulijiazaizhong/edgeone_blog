@@ -1,0 +1,34 @@
+---
+title: 觅思文档开源版搭建
+slug: misidoc
+date: 2024-11-11
+tags: ["觅思文档", "搭建教程", "服务器折腾"]
+description: 文档创建于2024-11-03，项目于2024-09-22开始运行
+---
+
+## 参考：
+
+[官方Docker镜像部署](https://doc.mrdoc.pro/doc/3958/)
+
+## 一、获取MrDoc代码
+
+打开终端，进入`opt`目录：
+💡可以在自定义的目录下拉取代码，但是在创建容器的时候务必将/opt/MrDoc或/opt/MrDocPro替换为你自定义的目录。
+
+```
+cd /opt
+git clone https://gitee.com/zmister/MrDoc.git
+```
+
+## 二、获取 Docker 镜像
+
+拉去镜像
+```docker pull zmister/mrdoc:v9.0```
+
+## 三、运行 Docker 容器
+
+```docker run -d --name mrdoc --restart always -p 10086:10086 -v /opt/MrDoc:/app/MrDoc zmister/mrdoc:v9.0```
+💡 如果你在第一步中用的不是/opt的路径，则将docker run -d --name mrdoc --restart always -p 10086:10086 -v /opt/MrDoc:/app/MrDoc zmister/mrdoc:v9.0中的/opt/MrDoc改为/你创建的目录/MrDoc
+
+宝塔Docker管理器图形界面操作：
+![宝塔Docker管理器图形界面操作](https://pan.blog-goodnightan.top/web_pan/blog_pictures/mrdoc/MrDoc_baota_start.png)

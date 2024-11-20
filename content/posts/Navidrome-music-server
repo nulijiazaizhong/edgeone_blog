@@ -1,0 +1,223 @@
+---
+title: 全流程教你搭建Navidrome音乐服务器
+slug: Navidrome
+date: 2024-11-20
+tags: ["Navidrome", "服务端搭建", "服务器折腾"]
+description: 自己搭建Navidrome音乐服务器的全流程教程
+---
+
+## 前言
+
+想必大家都有听个音乐要切换3、4个音乐软件的情况吧，有些时候切了还没有用，还需要开会员；这个时候我们就需要用到Navidrome音乐服务器了；  
+Navidrome音乐服务器支持 docker compose 部署，界面也是简洁、美观，非常适合我这种不想折腾的懒人了
+
+## Navidrome 简介
+
+[Navidrome ⁠](https://www.navidrome.org/)是一款基于 Web 的开源音乐收藏服务器和流媒体播放器。它让您可以自由地从任何浏览器或移动设备收听您的音乐收藏。它就像您的个人 Spotify！
+
+### 1. 优点：
+- 处理非常大的音乐收藏
+- 播放几乎所有可用的音频格式
+- 读取并使用您精心策划的所有元数据（id3 标签）
+- 多用户，每个用户都有自己的播放次数、播放列表、收藏夹等。
+- 资源占用极低：例如：300GB 的曲库（约 29000 首歌曲）占用的 RAM 不到 50MB
+- 多平台，可在 macOS、Linux 和 Windows 上运行。还提供 Docker 镜像
+- 可立即使用的 Raspberry Pi 二进制文件和 Docker 镜像
+- 自动监控库中的变更，导入新文件并重新加载新元数据
+- 基于 Material UI 的主题化、现代化、响应式的 Web 界面，用于管理用户和浏览您的图书馆
+- 与所有 Subsonic/Madsonic/Airsonic 客户端兼容。查看[已测试客户端列表⁠](https://www.navidrome.org/docs/overview/#apps)
+- 即时转码 / 降采样。可按用户 / 玩家设置。支持 Opus 编码
+- 集成音乐播放器
+
+### 2. 缺点：
+- 暂时没找到自动获取歌词的方法 (已找到方案，可参考 [Navidrome 番外，解决歌词显示问题](https://makifx.com/1249.html))
+- 不支持通过界面 上传 & 删除 歌曲（后续我们会通过其他的方式实现 上传 & 删除 功能）
+
+### 3. 官方演示站点：
+[https://demo.navidrome.org/app/](https://demo.navidrome.org/app/)
+
+### 4. 项目地址：
+
+Docker Hub 地址：[https://hub.docker.com/r/deluan/navidrome](https://hub.docker.com/r/deluan/navidrome)  
+Github 地址：[https://github.com/navidrome/navidrome](https://github.com/navidrome/navidrome)
+
+## 开始搭建
+
+### 1. 安装docker&docker compose
+懒人一键脚本：[科技lion的一键脚本](https://blog.kejilion.pro/kejilion-sh/)  ctrl+c可直接退出脚本
+
+```
+1.安装docker：
+	一键脚本：
+		安装组件：
+			Debina/Ubuntu：
+				apt update -y  && apt install -y curl
+			CentOS/RedHat/Fedora/AlmaLinux/Rocky Linux：
+				yum update && yum install -y curl
+			Alpine Linux：
+				apk update && apk add curl
+		运行脚本：bash <(curl -sL kejilion.sh)
+
+	输入Y并回车以同意用户协议（同意用户协议之后可直接使用K+Enter来直接启动脚本）
+
+脚本运行后按6+Enter之后再次按1+Enter进行docker的安装
+
+2.安装 docker compose
+	apt  install docker-compose
+	安装过程中输入一次Y+Enter即可
+
+3.检查docker&docker compose是否安装成功指令
+	docker：docker --version
+	docker compose：docker-compose --version
+```
+
+### 2.安装Navidrome
+我们将采用 docker compose 来搭建，docker & docker compose 的安装上面已经讲过了
+```
+apt update -y ## 安装前先升级系统包
+
+cd /home/myapp/ ## cd到你所需要安装的路径
+
+mkdir navidrome ## 创建文件夹 
+ 
+cd /home/myapp/navidrome ## 进入文件夹
+ 
+nano docker-compose.yml ## 创建docker-compose.yml文件
+```
+
+贴一个实际我在用的 docker-compose 配置示例（可以通过 LASTFM & SPOTIFY 削刮封面图等信息）
+```
+version: "3"
+services:
+    navidrome:
+        image: deluan/navidrome:latest
+        ports:
+            - "4533:4533" # 左边可以改成自己服务器未被占用的端口
+        environment:
+            # Optional: put your config options customization here. Examples(这些都是可选的):
+            ND_SCANSCHEDULE: 1m
+            ND_LASTFM_ENABLED:
+            ND_LASTFM_APIKEY: f1d50c0e912487521b # 修改成自己的APIKEY
+            ND_LASTFM_SECRET: ca4as89d7231cf9fc9 # 修改成自己的SECRET
+            ND_SPOTIFY_ID: 36bsqd1594bd0b41bc8f9 # 修改成自己的ID
+            ND_SPOTIFY_SECRET: 48be46fcb084523a6 # 修改成自己的SECRET
+            ND_LASTFM_LANGUAGE: zh
+            ND_LOGLEVEL: info
+            ND_SESSIONTIMEOUT: 24h
+            ND_BASEURL: ""
+        volumes:
+            - "./data:/data"
+            - "/home/myapp/navidrome/music_data/:/music:ro" # 冒号左边修改成自己本地的音乐文件夹路径
+```
+如果你不需要通过 LASTFM & SPOTIFY 削刮封面图等信息则使用这个
+```
+version: "3"
+services:
+    navidrome:
+        image: deluan/navidrome:latest
+        ports:
+            - "4533:4533" # 左边可以改成自己服务器未被占用的端口
+        environment:
+            # Optional: put your config options customization here. Examples(这些都是可选的):
+            ND_LOGLEVEL: info
+            ND_SESSIONTIMEOUT: 24h
+            ND_BASEURL: ""
+        volumes:
+            - "./data:/data"
+            - "/home/myapp/navidrome/music_data/:/music:ro" # 冒号左边修改成自己本地的音乐文件夹路径
+```
+### 3. 获取 LASTFM & SPOTIFY 密钥信息
+
+#### 1）. 获取 LASTFM 密钥信息
+首先需要一个 `Last.fm` 免费帐户，其次你要能访问 `Last.fm` ，
+转到[https://www.last.fm/api/account/create](https://www.last.fm/api/account/create) 并创建一个 API 帐户。只有应用程序名称 字段是强制性的（需要魔法，不然无法进行人机验证）
+![获取 LASTFM 密钥信息](https://pan.blog-goodnightan.top/web_pan/blog_pictures/Setup_Navidrome_music_server/fetch_LASTFM_Key_information.png)
+提交表单后，可以从 `API account Created` 页面获取 `API Key` 和 `Shared Secret`
+![LASTFM密钥信息展示](https://pan.blog-goodnightan.top/web_pan/blog_pictures/Setup_Navidrome_music_server/LASTFM_Key_show.png)
+将获取的密钥信息复制到刚才的 docker-compose.yml 文件内进行替换。
+
+#### 2）. 获取 SPOTIFY 密钥信息
+在 Spotify 中创建一个免费帐户，然后按照以下步骤操作：  
+单击 Spotify 的开发者仪表板中的 `CREATE AN APP` 按钮：[https://developer.spotify.com/dashboard/applications](https://developer.spotify.com/dashboard/applications)
+![创建应用程序](https://pan.blog-goodnightan.top/web_pan/blog_pictures/Setup_Navidrome_music_server/creat_Spotify_key.png)
+创建完成之后进入到所创建的控制台，点击`Setting` ，再点击`View client secret`
+将获取的密钥信息复制到刚才的 docker-compose.yml 文件内进行替换。
+![密钥展示](https://pan.blog-goodnightan.top/web_pan/blog_pictures/Setup_Navidrome_music_server/show_spotify.png)
+
+### 4. 运行
+输入以下命令启动：
+`docker-compose up -d`
+输入 `IP:4533` 就可以访问了
+
+### 5.配置域名
+这边我使用Nginx Proxy Manger
+
+#### 1）.安装
+这边为了方便大家进行配置，所以讲一下Nginx Proxy Manger怎么安装，还是一样使用docker compose来部署
+```
+cd /home/myapp  ## cd到你要安装的路径
+mkdir npm  ## 新建Nginx Proxy Manger文件夹
+cd /home/myapp/npm  ## cd到npm的路径下
+mkdir docker-compose.yml  ## 创建docker-compose.yml的文件
+
+
+复制代码到文件中
+version: '3.8'
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    
+ESC :wq+enter退出编辑模式并保存
+
+启动
+docker-compose up -d
+
+默认用户名密码
+Email:admin@example.com
+Password:changeme
+```
+
+#### 2）.配置 
+1. 先点击Proxy Hosts
+2. 点击Add Proxy Host
+3. 在`Domain Name` 处填入你的域名并回车确认
+4. `Forward Hostname / IP` 处填写ip地址，
+	1. Navidrome与Nginx Proxy Manger在同一台服务器上：
+		直接输入`127.0.0.1` ；
+	2. 不在同一台服务器上：
+		输入运行`Navidrome` 那台服务器的公网ip
+5. 勾选`Block Common Exploits`
+6. 选择SSL区域
+7. `SSL Certificate` 处选择`Request a new SSL Certificate`
+8. 打开`Force SSL` ，`I Agree to the Let's Encrypt Terms of Server` 
+9. 点击Save
+10. 等待创建成功之后选择`Online` 后面的三个点，点击`Edit` 
+11. 在`SSL` 选区将`Force SSL` 的的开关打开
+
+### 6.卸载
+```
+cd /home/myapp/navidrome
+docker compose down
+cd ..
+rm -rf /home/myapp/navidrome # 完全删除
+```
+
+## 解决音乐上传&删除问题
+
+我们将采用 filebrowser 来管理歌曲文件，可以有效解决音乐 上传 & 删除 问题。
+直接输入以下命令运行即可：
+```
+docker run -d --restart=always \
+-v /home/myapp/navidrome/music_data:/srv \  # 冒号左边的文件夹路径需与 Navidrome 保持一致
+-p 8003:80 \  # 冒号左边可以改成自己服务器未被占用的端口
+--name filebrowser \
+langren1353/filebrowser-ckplayer
+```
